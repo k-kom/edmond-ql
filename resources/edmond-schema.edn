@@ -1,0 +1,26 @@
+{:objects
+ {:Book
+  {:description "A physical book identified by ISBN."
+   :fields {:title {:type (non-null String)}
+            :borrowed {:type Boolean}
+            ;; ISBN-13 is too big for Int
+            :isbn {:type (non-null Float)}
+            :volume {:type Int}
+            :series {:type Int}
+            :publisher {:type String}
+            ;; TODO: scalar type Date
+            ;; :pubdate {:type :date}
+            :cover {:type String}
+            :author {:type String}}}}
+ :queries
+ {:book_by_isbn
+  {:type :Book
+   :description "Access a Book by its ISBN-13, if it exists."
+   :args {:isbn {:type (non-null Float)}}
+   :resolve :query/book-by-id}
+
+  :book_by_title
+  {:type :Book
+   :description "Access a Book by its title, if it exists (forward match)."
+   :args {:title {:type (non-null String)}}
+   :resolve :query/book-by-title}}}
