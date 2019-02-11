@@ -9,7 +9,8 @@
 
 (defn resolver-map []
   {:query/book-by-id (fn [_ _ _])
-   :query/book-by-title (fn [_ _ _])})
+   :query/book-by-title (fn [_ _ _])
+   :query/books-by-user (fn [_ _ _])})
 
 
 (defn ^:private edmond-schema
