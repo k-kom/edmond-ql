@@ -6,4 +6,5 @@
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [com.walmartlabs/lacinia-pedestal "0.11.0"]
                  [integrant "0.7.0"]]
-  :main ^{:skip-aot true} edmond-ql.core)
+  :main edmond-ql.core
+  :profiles {:uberjar {:aot :all}})
