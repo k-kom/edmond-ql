@@ -11,11 +11,14 @@
                  ;; TODO: scalar type Date
                  ;; :pubdate {:type :date}
                  :cover     {:type String}
-                 :author    {:type String}}}
-  :User
+                 :author    {:type String}}}}
+
+ :input-objects
+ {:User
   {:description "Data for a user"
-   :fields      {:name  {:type String}
-                 :token {:type String}}}}
+   :fields      {:name  {:type (non-null String)}
+                 :token {:type String
+                         :description "tbd"}}}}
 
  :queries
  {:book_by_isbn
@@ -31,7 +34,7 @@
    :resolve     :query/book-by-title}
 
   :books_by_user
-  {:type        :Book
+  {:type        (non-null (list :Book))
    :description "Access a Book by its title, if it exists."
-   :args        {:user {:type User}}
-   :resolve     :query/book-by-user}}}
+   :args        {:user {:type :User}}
+   :resolve     :query/books-by-user}}}
