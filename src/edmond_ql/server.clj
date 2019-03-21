@@ -1,9 +1,11 @@
 (ns edmond-ql.server
   (:require [io.pedestal.http :as http]
+            [com.walmartlabs.lacinia.pedestal :refer [service-map]]
             [integrant.core :as ig]))
 
 (defn start-server [schema _]
   (-> schema
+      (service-map {:graphiql true})
       http/create-server
       http/start))
 

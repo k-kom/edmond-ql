@@ -4,6 +4,6 @@ EXPOSE 8888
 
 WORKDIR /app
 
-COPY ./target/edmond-ql-0.1.0-SNAPSHOT-standalone.jar /app
-CMD java -jar /app/edmond-ql-0.1.0-SNAPSHOT-standalone.jar
+COPY ./target/edmond-ql-0.1.1-SNAPSHOT-standalone.jar /app/edmond-ql.jar
+CMD java -jar /app/edmond-ql.jar
 

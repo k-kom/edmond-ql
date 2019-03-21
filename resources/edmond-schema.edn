@@ -17,7 +17,7 @@
  {:User
   {:description "Data for a user"
    :fields      {:name  {:type (non-null String)}
-                 :token {:type String
+                 :token {:type        String
                          :description "tbd"}}}}
 
  :queries
@@ -28,7 +28,7 @@
    :resolve     :query/book-by-id}
 
   :book_by_title
-  {:type        :Book
+  {:type        (list :Book)
    :description "Access a Book by its title, if it exists (forward match)."
    :args        {:title {:type (non-null String)}}
    :resolve     :query/book-by-title}
@@ -37,4 +37,11 @@
   {:type        (non-null (list :Book))
    :description "Access a Book by its title, if it exists."
    :args        {:user {:type :User}}
-   :resolve     :query/books-by-user}}}
+   :resolve     :query/books-by-user}}
+
+ :mutations
+ {:register_book
+  {:type        :Book
+   :description "Store a Book by ISBN-13. If already registered Book was requested, that stock is incremented."
+   :args        {:isbn {:type (non-null Float)}}
+   :resolve     :mutation/register-book}}}
