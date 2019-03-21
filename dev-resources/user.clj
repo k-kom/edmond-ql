@@ -2,7 +2,8 @@
   (:require [com.walmartlabs.lacinia :as lacinia]
             [clojure.walk :as walk]
             [integrant.core :as ig]
-            [edmond-ql.core :as core])
+            [edmond-ql.core :as core]
+            [org.httpkit.client :as http])
   (:import (clojure.lang IPersistentMap)))
 
 (defn simplify
@@ -41,3 +42,16 @@
 (comment
   (start)
   (stop))
+
+(comment "elasticsearch experiment"
+         (http/get "http://localhost:9200/bank/_search" {:headers {"Content-Type" "application/json"}
+                                                         :body (clojure.data.json/write-str {:query {:match_all {}}
+                                                                                             :sort [{:account_number :asc}]})}
+                   (fn [{:keys [status headers body error]}] ;; asynchronous response handling
+                     (if error
+                       (println "Failed, exception is " error)
+                       (do
+                         (println "Async HTTP GET: " status)
+                         (println
+                           (map #(-> %1 :_source (select-keys [:firstname :lastname]))
+                                (get-in (clojure.data.json/read-str body :key-fn keyword) [:hits :hits]))))))))
