@@ -3,7 +3,7 @@
             [clojure.walk :as walk]
             [integrant.core :as ig]
             [edmond-ql.core :as core]
-            [org.httpkit.client :as http])
+            [qbits.spandex :as s])
   (:import (clojure.lang IPersistentMap)))
 
 (defn simplify
@@ -29,7 +29,7 @@
 
 (defn start
   []
-  (alter-var-root #'system (fn [_] (ig/init core/config)))
+  (alter-var-root #'system (fn [_] (edmond-ql.core/-main)))
   :started)
 
 (defn stop
@@ -55,3 +55,11 @@
                          (println
                            (map #(-> %1 :_source (select-keys [:firstname :lastname]))
                                 (get-in (clojure.data.json/read-str body :key-fn keyword) [:hits :hits]))))))))
+
+;;(comment "localhost:9200/bank/_search?pretty" -H 'Content-Type: application/json' -d'
+;;         {
+;;          "query": { "match_all": {} },
+;;                 "sort": [
+;;                          { "account_number": "asc" }
+;;                          ]
+;;          })
