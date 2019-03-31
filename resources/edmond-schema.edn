@@ -11,7 +11,8 @@
                  ;; TODO: scalar type Date
                  ;; :pubdate {:type :date}
                  :cover     {:type String}
-                 :author    {:type String}}}}
+                 :author    {:type String}
+                 :stock_count {:type Int}}}}
 
  :input-objects
  {:User

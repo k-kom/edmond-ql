@@ -1,11 +1,14 @@
 (ns edmond-ql.server
   (:require [io.pedestal.http :as http]
+            [io.pedestal.http.cors :refer [allow-origin]]
             [com.walmartlabs.lacinia.pedestal :refer [service-map]]
             [integrant.core :as ig]))
 
 (defn start-server [schema _]
   (-> schema
       (service-map {:graphiql true})
+      (merge {:creds                 true
+              ::http/allowed-origins (constantly true)})
       http/create-server
       http/start))
 

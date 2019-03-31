@@ -2,7 +2,8 @@
   (:require [com.walmartlabs.lacinia :as lacinia]
             [clojure.walk :as walk]
             [integrant.core :as ig]
-            [edmond-ql.core :as core])
+            [edmond-ql.core :as core]
+            [qbits.spandex :as s])
   (:import (clojure.lang IPersistentMap)))
 
 (defn simplify
@@ -28,7 +29,7 @@
 
 (defn start
   []
-  (alter-var-root #'system (fn [_] (ig/init core/config)))
+  (alter-var-root #'system (fn [_] (edmond-ql.core/-main)))
   :started)
 
 (defn stop
