@@ -2,7 +2,7 @@
   (:require [integrant.core :as ig]
             [clojure.data.json :as json]
             [qbits.spandex :as s])
-  (:import (clojure.lang PersistentArrayMap)))
+  (:import (clojure.lang PersistentVector)))
 
 (comment This namespace implements infrastructure layer like postgresql.
          schema namespace depends on this namespace to retrieve data from physical database.)
@@ -24,17 +24,23 @@
   (alter-var-root #'es-client (constantly nil)))
 
 ;; db に保存する時のスキーマ
-(defrecord Book [^PersistentArrayMap raw-book ^PersistentArrayMap edmond-meta])
+(defrecord Book
+  [^String isbn
+   ^String title
+   ^Integer volume
+   ^Integer series
+   ^String publisher
+   ^String pubdate
+   ^String cover
+   ^String author
+   ^Integer stock-count
+   ^PersistentVector borrowing-user])
 
 (defn default-meta
   "Book :edmond-meta の初期値を返します。"
   []
-  {:stock-count 0})
-
-(defn new-book
-  "Book のコンストラクタ。"
-  ([r] (new-book r (default-meta)))
-  ([r m] (->Book r m)))
+  {:stock-count 0
+   :borrowing-user []})
 
 (defn fetch-new-book
   "isbn の情報を opendb から取得して結果を future で返します。"
@@ -44,23 +50,24 @@
 (defn str->number [v]
   (if (empty? v) 0 (BigInteger/valueOf (Float/parseFloat v))))
 
+(defn raw-book->book
+  "api の結果を受け取って Book を返します。"
+  [raw-book]
+  (-> raw-book
+      (get :summary)
+      (assoc :freeword (clojure.string/join "," (map :Text (get-in raw-book [:onix :CollateralDetail :TextContent]))))
+      (update :volume str->number)
+      (update :series str->number)
+      (update :isbn str->number)
+      (merge (default-meta))
+      map->Book))
+
 (defn isbn->book [isbn]
   (let [[raw-book] (-> isbn
                        fetch-new-book
                        deref
                        (json/read-str :key-fn keyword))]
-    (new-book raw-book)))
-
-(defn book->schema-book
-  "Book を受け取って schema Book を返します。"
-  [{:keys [raw-book edmond-meta]}]
-  (-> raw-book
-      (get :summary)
-      (assoc :stock_count (:stock-count edmond-meta))
-      (update :volume str->number)
-      (update :series str->number)
-      (update :isbn str->number)
-      (dissoc :stock-count)))
+    (raw-book->book raw-book)))
 
 ;; TODO: ...
 (defn fetch-book
@@ -70,7 +77,7 @@
 (defn inc-stock
   "elasticsearch の book doc の在庫を1増やします。"
   [book]
-  (update-in book [:edmond-meta :stock-count] inc))
+  (update book :stock-count inc))
 
 (defn update-book
   "book で elasticsearch を update します"
@@ -78,6 +85,11 @@
   (s/request client {:url    [:test_book :_doc]
                      :method :post
                      :body   book}))
+
+(defn book->schema-book [book]
+  (-> book
+      (assoc :stock_count (:stock-count book))
+      (dissoc :stock-count)))
 
 (defn register-book
   "isbn で elasticsearch を検索し (未実装)、 見つからない場合は新規登録します。見つかった場合は在庫を1増やします。
@@ -89,3 +101,7 @@
                  inc-stock)]
     (update-book es-client book)
     (book->schema-book book)))
+
+(defn books-by-title [title]
+  (s/request es-client {:url [:test_book :_doc]
+                        :method :get}))
