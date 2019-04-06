@@ -33,8 +33,16 @@
    ^String pubdate
    ^String cover
    ^String author
+   ^String full-text
    ^Integer stock-count
    ^PersistentVector borrowing-user])
+
+(defn full-text [raw-book]
+  (clojure.string/replace
+    (clojure.string/join "," (conj (map :Text (get-in raw-book [:onix :CollateralDetail :TextContent]))
+                                   (get-in raw-book [:summary :title])))
+    #"\n"
+    ","))
 
 (defn default-meta
   "Book :edmond-meta の初期値を返します。"
@@ -43,19 +51,25 @@
    :borrowing-user []})
 
 (defn fetch-new-book
-  "isbn の情報を opendb から取得して結果を future で返します。"
+  "isbn の情報を opendb から取得して結果の body を hash-map で返します。"
   [isbn]
-  (future (slurp (book-url isbn))))
+  (-> isbn
+      book-url
+      slurp
+      future
+      deref
+      (json/read-str :key-fn keyword)))
 
 (defn str->number [v]
   (if (empty? v) 0 (BigInteger/valueOf (Float/parseFloat v))))
 
+
 (defn raw-book->book
-  "api の結果を受け取って Book を返します。"
+  "opendb の結果を受け取って Book を返します。"
   [raw-book]
   (-> raw-book
       (get :summary)
-      (assoc :freeword (clojure.string/join "," (map :Text (get-in raw-book [:onix :CollateralDetail :TextContent]))))
+      (assoc :full-text (full-text raw-book))
       (update :volume str->number)
       (update :series str->number)
       (update :isbn str->number)
@@ -63,16 +77,25 @@
       map->Book))
 
 (defn isbn->book [isbn]
-  (let [[raw-book] (-> isbn
-                       fetch-new-book
-                       deref
-                       (json/read-str :key-fn keyword))]
+  (let [[raw-book] (fetch-new-book isbn)]
     (raw-book->book raw-book)))
 
-;; TODO: ...
 (defn fetch-book
   "elasticsearch から isbn を元に本を取得します。みつからない場合は nil を返します。"
-  [isbn])
+  [isbn]
+  (s/request es-client {:url [:test_book :_doc :_search]
+                        :query {:match {:isbn isbn}}
+                        :method :get}))
+
+(defn freeword-req [text]
+  {:url    [:test_book :_doc :_search]
+   :body   {:query {:match {:full-text text}}
+            :_source [:isbn :title]}
+   :method :get})
+
+(defn books-by-text [text]
+  "elasticsearch を full text search します。"
+  (s/request es-client (freeword-req text)))
 
 (defn inc-stock
   "elasticsearch の book doc の在庫を1増やします。"
@@ -102,6 +125,4 @@
     (update-book es-client book)
     (book->schema-book book)))
 
-(defn books-by-title [title]
-  (s/request es-client {:url [:test_book :_doc]
-                        :method :get}))
+
