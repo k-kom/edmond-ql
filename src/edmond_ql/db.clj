@@ -37,10 +37,15 @@
    ^Integer stock-count
    ^PersistentVector borrowing-user])
 
+(def raw-book->texts
+  (juxt (fn [raw-book] (map :Text (get-in raw-book [:onix :CollateralDetail :TextContent])))
+        (fn [raw-book] (get-in raw-book [:summary :title]))
+        (fn [raw-book] (get-in raw-book [:summary :publisher]))
+        (fn [raw-book] (get-in raw-book [:summary :author]))))
+
 (defn full-text [raw-book]
   (clojure.string/replace
-    (clojure.string/join "," (conj (map :Text (get-in raw-book [:onix :CollateralDetail :TextContent]))
-                                   (get-in raw-book [:summary :title])))
+    (clojure.string/join "," (flatten (raw-book->texts raw-book)))
     #"\n"
     ","))
 
@@ -87,15 +92,20 @@
                         :query {:match {:isbn isbn}}
                         :method :get}))
 
-(defn freeword-req [text]
-  {:url    [:test_book :_doc :_search]
-   :body   {:query {:match {:full-text text}}
-            :_source [:isbn :title]}
-   :method :get})
+(defn fetch-book-by-full-text [text]
+  (s/request es-client {:url    [:test_book :_doc :_search]
+                        :body   {:query {:match {:full-text text}}
+                                 ; TODO: ここは動的にした方がよいのでは?
+                                 :_source [:isbn :title :volume :series :publisher :cover :author :stock-count]}
+                        :method :get}))
 
 (defn books-by-text [text]
   "elasticsearch を full text search します。"
-  (s/request es-client (freeword-req text)))
+  (let [books (fetch-book-by-full-text text)]
+    (->> (get-in books [:body :hits :hits])
+         ; 見た感じ 1.5 より低いときはあんま関係なさそうだった ("おにぎり" でもリーダブルコードがヒットしたけど 0.7 とかだった)
+         (filter #(> (:_score %) 1.5))
+         (map :_source))))
 
 (defn inc-stock
   "elasticsearch の book doc の在庫を1増やします。"
