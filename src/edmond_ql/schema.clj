@@ -6,23 +6,19 @@
             [integrant.core :as ig]
             [edmond-ql.db :as db]))
 
-(def books
-  (atom []))
+(defn book-by-text [_ {:keys [text]} _]
+  (db/books-by-text text))
 
-(defn book-by-title [_ {:keys [title]} _]
-  (let [r (re-pattern title)]
-    (filter #(re-find r (:title %1)) @books)))
+(defn book-by-isbn [_ {:keys [isbn]} _]
+  (db/books-by-isbn isbn))
 
 (defn register-book [_ {:keys [isbn]} _]
-  (let [b (db/register-book (BigInteger/valueOf isbn))]
-    (swap! books conj b)
-    (println "about to save the book: " b)
-    b))
+  (println "about to register the book: " isbn)
+  (db/register-book (BigInteger/valueOf isbn)))
 
 (defn resolver-map []
-  {:query/book-by-id       (fn [_ _ _])
-   :query/book-by-title    book-by-title
-   :query/books-by-user    (fn [_ _ _])
+  {:query/book-by-isbn     book-by-isbn
+   :query/book-by-text     book-by-text
    :mutation/register-book register-book})
 
 (defn ^:private edmond-schema
@@ -37,5 +33,4 @@
 (defmethod ig/init-key :graphql/schema [_ {:keys [fname]}]
   (edmond-schema fname))
 
-(defmethod ig/halt-key! :graphql/schema [_ _]
-  (reset! books []))
+(defmethod ig/halt-key! :graphql/schema [_ _])
