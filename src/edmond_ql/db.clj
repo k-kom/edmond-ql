@@ -135,7 +135,11 @@
   (let [book (-> isbn
                  isbn->book
                  inc-stock)]
-    (update-book es-client book)
+    (println "got api response: " book)
+    (try
+      (update-book es-client book)
+      (catch Exception e
+        (println (Throwable->map e))))
     (book->schema-book book)))
 
 

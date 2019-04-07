@@ -1,4 +1,4 @@
-(defproject edmond-ql "0.1.1-SNAPSHOT"
+(defproject edmond-ql "0.1.2-SNAPSHOT"
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
@@ -11,4 +11,7 @@
                  [cc.qbits/spandex "0.5.2"]
                  [environ "1.1.0"]]
   :main edmond-ql.core
-  :profiles {:uberjar {:aot :all}})
+  :uberjar-name "edmond-ql.jar"
+  :plugins [[lein-environ "1.1.0"]]
+  :profiles {:uberjar {:aot :all}
+             :dev [:project/dev :profiles/dev]})
