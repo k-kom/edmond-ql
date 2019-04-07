@@ -9,12 +9,15 @@
 (defn book-by-text [_ {:keys [text]} _]
   (db/books-by-text text))
 
+(defn book-by-isbn [_ {:keys [isbn]} _]
+  (db/books-by-isbn isbn))
+
 (defn register-book [_ {:keys [isbn]} _]
   (println "about to register the book: " isbn)
   (db/register-book (BigInteger/valueOf isbn)))
 
 (defn resolver-map []
-  {:query/book-by-id       (fn [_ _ _])
+  {:query/book-by-isbn     book-by-isbn
    :query/book-by-text     book-by-text
    :mutation/register-book register-book})
 

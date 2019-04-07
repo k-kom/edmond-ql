@@ -66,7 +66,7 @@
       (json/read-str :key-fn keyword)))
 
 (defn str->number [v]
-  (if (empty? v) 0 (BigInteger/valueOf (Float/parseFloat v))))
+  (if (empty? v) 0 (BigInteger/valueOf (Long/parseLong v))))
 
 
 (defn raw-book->book
@@ -85,27 +85,30 @@
   (let [[raw-book] (fetch-new-book isbn)]
     (raw-book->book raw-book)))
 
-(defn fetch-book
-  "elasticsearch から isbn を元に本を取得します。みつからない場合は nil を返します。"
-  [isbn]
-  (s/request es-client {:url [:test_book :_doc :_search]
-                        :query {:match {:isbn isbn}}
-                        :method :get}))
+(defn search-req [q]
+  {:url    [:test_book :_doc :_search]
+   :body   {:query q
+            ; TODO: ここは動的にした方がよいのでは?
+            :_source [:isbn :title :volume :series :publisher :cover :author :stock-count]}
+   :method :get})
+
+(defn fetch-book-by-isbn [isbn]
+  (s/request es-client (search-req {:match {:isbn isbn}})))
 
 (defn fetch-book-by-full-text [text]
-  (s/request es-client {:url    [:test_book :_doc :_search]
-                        :body   {:query {:match {:full-text text}}
-                                 ; TODO: ここは動的にした方がよいのでは?
-                                 :_source [:isbn :title :volume :series :publisher :cover :author :stock-count]}
-                        :method :get}))
+  (s/request es-client (search-req {:match {:full-text text}})))
 
 (defn books-by-text [text]
   "elasticsearch を full text search します。"
   (let [books (fetch-book-by-full-text text)]
     (->> (get-in books [:body :hits :hits])
-         ; 見た感じ 1.5 より低いときはあんま関係なさそうだった ("おにぎり" でもリーダブルコードがヒットしたけど 0.7 とかだった)
-         (filter #(> (:_score %) 1.5))
          (map :_source))))
+
+(defn books-by-isbn [isbn]
+  (let [books (fetch-book-by-isbn isbn)]
+    (-> (get-in books [:body :hits :hits])
+        first
+        :_source)))
 
 (defn inc-stock
   "elasticsearch の book doc の在庫を1増やします。"

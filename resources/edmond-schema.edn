@@ -18,7 +18,7 @@
   {:type        :Book
    :description "Access a Book by its ISBN-13, if it exists."
    :args        {:isbn {:type (non-null Float)}}
-   :resolve     :query/book-by-id}
+   :resolve     :query/book-by-isbn}
 
   :book_by_text
   {:type        (list :Book)
