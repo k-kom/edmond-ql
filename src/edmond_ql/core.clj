@@ -12,7 +12,7 @@
                      :port              8080})
 
 (defn config [c]
-  (let [{:keys [schema-file port] :as c} (merge c default-config)]
+  (let [{:keys [schema-file port] :as c} (merge default-config c)]
     {:server/pedestal (merge {:port port} {:graphql/schema (ig/ref :graphql/schema)})
      :graphql/schema  {:fname schema-file}
      :data/db         (select-keys c [:book-api-url :elasticsearch-url])}))
@@ -24,4 +24,6 @@
 (defn -main
   ""
   []
-  (ig/init (config env)))
+  (let [c (config env)]
+    (println "config: " c)
+    (ig/init c)))
