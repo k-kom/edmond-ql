@@ -83,7 +83,9 @@
 
 (defn isbn->book [isbn]
   (let [[raw-book] (fetch-new-book isbn)]
-    (raw-book->book raw-book)))
+    (if (nil? raw-book)
+      nil
+      (raw-book->book raw-book))))
 
 (defn search-req [q]
   {:url    [:test_book :_doc :_search]
@@ -132,9 +134,9 @@
    結果として schema Book として扱える hash map を返します。"
   [isbn]
   (println "started to fetch isbn:" isbn)
-  (let [book (-> isbn
-                 isbn->book
-                 inc-stock)]
+  (when-let [book (some-> isbn
+                          isbn->book
+                          inc-stock)]
     (println "got api response: " book)
     (try
       (update-book es-client book)
