@@ -89,16 +89,21 @@
 
 (defn search-req [q]
   {:url    [:test_book :_doc :_search]
-   :body   {:query q
-            ; TODO: ここは動的にした方がよいのでは?
-            :_source [:isbn :title :volume :series :publisher :cover :author :stock-count]}
+   :body   {:query q}
+   :_source [:isbn :title :volume :series :publisher :cover :author :stock-count]
    :method :get})
 
 (defn fetch-book-by-isbn [isbn]
-  (s/request es-client (search-req {:match {:isbn isbn}})))
+  (try
+    (s/request es-client (search-req {:match {:isbn isbn}}))
+    (catch Exception e
+      (println (Throwable->map e)))))
 
 (defn fetch-book-by-full-text [text]
-  (s/request es-client (search-req {:match {:full-text text}})))
+  (try
+    (s/request es-client (search-req {:match {:full-text text}}))
+    (catch Exception e
+      (println (Throwable->map e)))))
 
 (defn books-by-text [text]
   "elasticsearch を full text search します。"
@@ -117,8 +122,8 @@
   [book]
   (update book :stock-count inc))
 
-(defn update-book
-  "book で elasticsearch を update します"
+(defn save-book
+  "book で elasticsearch に新規登録します"
   [client book]
   (s/request client {:url    [:test_book :_doc]
                      :method :post
@@ -130,18 +135,20 @@
       (dissoc :stock-count)))
 
 (defn register-book
-  "isbn で elasticsearch を検索し (未実装)、 見つからない場合は新規登録します。見つかった場合は在庫を1増やします。
+  "isbn で elasticsearch を検索し (未実装)、 見つからない場合は新規登録します。見つかった場合は何もせずそれを返します。
    結果として schema Book として扱える hash map を返します。"
   [isbn]
   (println "started to fetch isbn:" isbn)
-  (when-let [book (some-> isbn
-                          isbn->book
-                          inc-stock)]
-    (println "got api response: " book)
-    (try
-      (update-book es-client book)
-      (catch Exception e
-        (println (Throwable->map e))))
-    (book->schema-book book)))
+  (if-let [registered-book (books-by-isbn isbn)]
+    registered-book
+    (when-let [book (some-> isbn
+                            isbn->book
+                            inc-stock)]
+      (println "got api response: " book)
+      (try
+        (save-book es-client book)
+        (catch Exception e
+          (println (Throwable->map e))))
+      (book->schema-book book))))
 
 
